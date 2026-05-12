@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Auswertung{% endblock %}
+
+{% block content %}
+<div class="text-center py-16" x-data="auswertung()" x-init="starten()">
+
+  <div x-show="!fertig" class="space-y-6">
+    <div class="relative w-20 h-20 mx-auto">
+      <img src="/static/icon.png" alt="" class="w-20 h-20 rounded-full">
+      <div class="absolute inset-0 rounded-full border-4 border-gold border-t-transparent animate-spin"></div>
+    </div>
+    <h1 class="text-2xl font-semibold text-navy">Deine Antworten werden ausgewertet</h1>
+    <p class="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed" x-text="statusText"></p>
+  </div>
+
+  <div x-show="fehler" class="space-y-4">
+    <div class="text-4xl">😕</div>
+    <h2 class="font-semibold text-navy text-xl">Da ist etwas schiefgelaufen</h2>
+    <p class="text-gray-500 text-sm" x-text="fehlerText"></p>
+    <button @click="starten()" class="btn-outline mt-4">Nochmal versuchen</button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function auswertung() {
+  return {
+    fertig: false,
+    fehler: false,
+    fehlerText: '',
+    statusTexte: [
+      'Deine Reflexionen werden analysiert...',
+      'Dein Charakterprofil wird ausgewertet...',
+      'Berufsfelder werden abgeglichen...',
+      'Dein beruflicher Fingerabdruck wird formuliert...',
+      'Fast fertig...',
+    ],
+    statusIndex: 0,
+    statusText: 'Einen Moment...',
+    async starten() {
+      this.fehler = false;
+      this.fertig = false;
+      this.statusText = this.statusTexte[0];
+
+      const interval = setInterval(() => {
+        this.statusIndex = (this.statusIndex + 1) % this.statusTexte.length;
+        this.statusText = this.statusTexte[this.statusIndex];
+      }, 4000);
+
+      try {
+        const res = await fetch('/api/auswertung', { method: 'POST' });
+        const data = await res.json();
+        clearInterval(interval);
+        if (data.status === 'ok' || data.status === 'already_done') {
+          window.location.href = '/ergebnis';
+        } else {
+          this.fehler = true;
+          this.fehlerText = data.error || 'Unbekannter Fehler. Bitte versuche es erneut.';
+        }
+      } catch (e) {
+        clearInterval(interval);
+        this.fehler = true;
+        this.fehlerText = 'Verbindungsfehler. Bitte prüfe deine Internetverbindung.';
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}Deine Situation{% endblock %}
+
+{% block content %}
+<div x-data="faktenForm()" x-init="init()">
+
+  <div class="mb-8">
+    <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+    <h1 class="text-2xl font-semibold text-navy">Erzähl mir von dir</h1>
+    <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+      Ein paar Fakten zu deiner Situation – das gibt uns ein gutes Ausgangsbild.
+    </p>
+  </div>
+
+  <form method="post" action="/fakten">
+
+    <!-- 1. Persönliches -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4">Wer bist du?</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Vorname</label>
+          <input type="text" name="vorname" value="{{ saved.get('vorname', '') }}" placeholder="z.B. Lena">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Alter</label>
+          <input type="number" name="alter" value="{{ saved.get('alter', '') }}" placeholder="z.B. 18" min="14" max="99">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm text-gray-600 mb-1">Bundesland</label>
+          <select name="bundesland">
+            <option value="">Bitte wählen</option>
+            {% for bl in ['Burgenland','Kärnten','Niederösterreich','Oberösterreich','Salzburg','Steiermark','Tirol','Vorarlberg','Wien'] %}
+            <option value="{{ bl }}" {% if saved.get('bundesland') == bl %}selected{% endif %}>{{ bl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Situation -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4">Wo stehst du gerade?</h2>
+      <select name="situation" x-model="situation">
+        <option value="">Bitte wählen</option>
+        <option value="schule" {% if saved.get('situation') == 'schule' %}selected{% endif %}>Noch in der Schule</option>
+        <option value="schule_fertig" {% if saved.get('situation') == 'schule_fertig' %}selected{% endif %}>Gerade mit der Schule fertig</option>
+        <option value="gap_year" {% if saved.get('situation') == 'gap_year' %}selected{% endif %}>Gap Year / Orientierungsphase</option>
+        <option value="auslandsjahr" {% if saved.get('situation') == 'auslandsjahr' %}selected{% endif %}>Sprachjahr / Auslandsjahr / Übergang</option>
+        <option value="neu_orientieren" {% if saved.get('situation') == 'neu_orientieren' %}selected{% endif %}>Ich bin in einer Pause und sortiere mich neu</option>
+        <option value="ausbildung" {% if saved.get('situation') == 'ausbildung' %}selected{% endif %}>In der Ausbildung</option>
+        <option value="arbeite" {% if saved.get('situation') == 'arbeite' %}selected{% endif %}>Ich arbeite schon</option>
+      </select>
+    </div>
+
+    <!-- 3. Schulbildung (alle) -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4" x-text="situation === 'schule' ? 'Dein aktueller Schulstand' : 'Schulbildung'">Schulbildung</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Schulform</label>
+          <select name="schulform" x-model="schulform">
+            <option value="">Bitte wählen</option>
+            <option value="ahs" {% if saved.get('schulform') == 'ahs' %}selected{% endif %}>AHS (Gymnasium, Realgymnasium)</option>
+            <option value="bhs" {% if saved.get('schulform') == 'bhs' %}selected{% endif %}>BHS (HTL, HAK, HLW, HLFS …)</option>
+            <option value="bms" {% if saved.get('schulform') == 'bms' %}selected{% endif %}>BMS (Fachschule)</option>
+            <option value="nms" {% if saved.get('schulform') == 'nms' %}selected{% endif %}>NMS / Mittelschule</option>
+            <option value="berufsschule" {% if saved.get('schulform') == 'berufsschule' %}selected{% endif %}>Berufsschule (Lehre)</option>
+            <option value="sonstiges" {% if saved.get('schulform') == 'sonstiges' %}selected{% endif %}>Sonstiges</option>
+          </select>
+        </div>
+        <div x-show="situation === 'schule'">
+          <label class="block text-sm text-gray-600 mb-1">Aktuelle Klasse / Jahrgangsstufe</label>
+          <input type="text" name="aktuelle_klasse" value="{{ saved.get('aktuelle_klasse', '') }}" placeholder="z.B. 10. Klasse, Q1, Q2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1" x-text="situation === 'schule' ? 'Angestrebter Abschluss' : 'Abschluss'">Abschluss</label>
+          <select name="abschluss">
+            <option value="">Bitte wählen</option>
+            <option value="kein" {% if saved.get('abschluss') == 'kein' %}selected{% endif %}>Noch kein Abschluss</option>
+            <option value="haupt" {% if saved.get('abschluss') == 'haupt' %}selected{% endif %}>Hauptschulabschluss (9. Schulstufe)</option>
+            <option value="lehre" {% if saved.get('abschluss') == 'lehre' %}selected{% endif %}>Lehrabschluss</option>
+            <option value="bms" {% if saved.get('abschluss') == 'bms' %}selected{% endif %}>BMS-Abschluss (Fachschule)</option>
+            <option value="reife" {% if saved.get('abschluss') == 'reife' %}selected{% endif %}>Matura / Reife- und Diplomprüfung</option>
+            <option value="brp" {% if saved.get('abschluss') == 'brp' %}selected{% endif %}>Berufsreifeprüfung</option>
+          </select>
+        </div>
+        <div x-show="schulform === 'gymnasium'">
+          <label class="block text-sm text-gray-600 mb-1">Schwerpunktfächer / Leistungskurse</label>
+          <input type="text" name="leistungskurse" value="{{ saved.get('leistungskurse', '') }}" placeholder="z.B. Mathe, Englisch">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Abschlussnote <span class="text-gray-400">(falls vorhanden)</span></label>
+          <input type="text" name="note" value="{{ saved.get('note', '') }}" placeholder="z.B. 2,3">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Ausbildung -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4">Ausbildung</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-2">Hast du eine Ausbildung angefangen?</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="ausbildung_ja" value="ja" x-model="ausbildungJa"
+                {% if saved.get('ausbildung_ja') == 'ja' %}checked{% endif %}> Ja
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="ausbildung_ja" value="nein" x-model="ausbildungJa"
+                {% if saved.get('ausbildung_ja') == 'nein' %}checked{% endif %}> Nein
+            </label>
+          </div>
+        </div>
+        <div x-show="ausbildungJa === 'ja'" class="space-y-3 border-l-2 border-gold/30 pl-4">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Ausbildungsberuf</label>
+            <input type="text" name="ausbildung_beruf" value="{{ saved.get('ausbildung_beruf', '') }}" placeholder="z.B. Kaufmann/-frau im Einzelhandel">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-2">Status</label>
+            <div class="flex gap-4 flex-wrap">
+              {% for val, label in [('laeuft','Läuft noch'),('abgeschlossen','Abgeschlossen'),('abgebrochen','Abgebrochen')] %}
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" name="ausbildung_status" value="{{ val }}"
+                  {% if saved.get('ausbildung_status') == val %}checked{% endif %}> {{ label }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Berufstätigkeit (nur für arbeite/pause/neu_anfangen) -->
+    <div class="card mb-5" x-show="situation === 'arbeite' || situation === 'neu_anfangen' || situation === 'pause'" x-cloak>
+      <h2 class="font-semibold text-navy mb-4">Dein Berufsleben bisher</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Was machst (oder machtest) du beruflich?</label>
+          <input type="text" name="aktueller_beruf" value="{{ saved.get('aktueller_beruf', '') }}" placeholder="z.B. Mediengestalterin, Bürokauffrau, Lehrerin">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Wie lange schon in dem Bereich?</label>
+          <input type="text" name="berufsjahre" value="{{ saved.get('berufsjahre', '') }}" placeholder="z.B. 3 Jahre, oder 15 Jahre">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-2">Wie zufrieden bist du mit deinem aktuellen Job?</label>
+          <div class="flex gap-3 flex-wrap text-sm">
+            {% for val, label in [('sehr_unzufrieden','Sehr unzufrieden'),('unzufrieden','Eher unzufrieden'),('mittel','Geht so'),('zufrieden','Eher zufrieden')] %}
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="job_zufriedenheit" value="{{ val }}" {% if saved.get('job_zufriedenheit') == val %}checked{% endif %}>
+              {{ label }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Was stört dich am meisten? Was fehlt dir?</label>
+          <textarea name="job_unzufriedenheit" rows="3" placeholder="z.B. zu wenig Sinn, kein Kontakt zu Menschen, schlechte Bezahlung, ...">{{ saved.get('job_unzufriedenheit', '') }}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Was sind übertragbare Stärken aus deinem bisherigen Job?</label>
+          <textarea name="uebertragbare_staerken" rows="2" placeholder="z.B. Projektorganisation, Kundenkontakt, technisches Verständnis, ...">{{ saved.get('uebertragbare_staerken', '') }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Mobilität -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4">Mobilität</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-2">Wärst du bereit, für den nächsten Schritt umzuziehen oder wegzugehen?</label>
+          <div class="flex gap-4 flex-wrap text-sm">
+            {% for val, label in [('nur_heimat','Nur in meiner Region'),('andere_stadt','Andere Stadt in Österreich'),('bundesweit','Überall in Österreich'),('ausland','Auch ins Ausland'),('weiss_nicht','Weiß ich noch nicht')] %}
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="mobilitaet" value="{{ val }}" {% if saved.get('mobilitaet') == val %}checked{% endif %}>
+              {{ label }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Finanzierung -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-4">Finanzierung</h2>
+      <label class="block text-sm text-gray-600 mb-1">Was hast du dir zur Finanzierung schon überlegt?</label>
+      <p class="text-xs text-gray-400 mb-2">Eltern, Nebenjob, Stipendium, Beihilfe, eigene Ersparnisse, Lehre mit Gehalt... – schreib einfach, was du dir vorstellst oder was noch offen ist.</p>
+      <textarea name="finanzierung" rows="2" placeholder="z.B. Eltern unterstützen mich, oder ich möchte direkt Geld verdienen, oder ich suche ein Stipendium, ...">{{ saved.get('finanzierung', '') }}</textarea>
+    </div>
+
+    <!-- 9. Geburtsdaten (optional) -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-1">Geburtsdaten <span class="text-xs font-normal text-gray-400">(alles optional)</span></h2>
+      <p class="text-xs text-gray-400 mb-4">Diese Angaben können für eine tiefere Auswertung genutzt werden – z.B. für Human Design, Numerologie oder Astrologie.</p>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Geburtsdatum</label>
+            <input type="date" name="geburtsdatum" value="{{ saved.get('geburtsdatum', '') }}">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Geburtsuhrzeit</label>
+            <input type="time" name="geburtsuhrzeit" value="{{ saved.get('geburtsuhrzeit', '') }}">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Geburtsort</label>
+          <input type="text" name="geburtsort" value="{{ saved.get('geburtsort', '') }}" placeholder="z.B. München">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Sternzeichen</label>
+          <select name="sternzeichen">
+            <option value="">Bitte wählen oder leer lassen</option>
+            {% for sz in ['Widder','Stier','Zwillinge','Krebs','Löwe','Jungfrau','Waage','Skorpion','Schütze','Steinbock','Wassermann','Fische'] %}
+            <option value="{{ sz }}" {% if saved.get('sternzeichen') == sz %}selected{% endif %}>{{ sz }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. Interesse an weiteren Perspektiven -->
+    <div class="card mb-5">
+      <h2 class="font-semibold text-navy mb-1">Interesse an weiteren Perspektiven</h2>
+      <p class="text-xs text-gray-400 mb-4">Magst du dich auf folgende Themen einlassen? Das beeinflusst, was in deiner Auswertung berücksichtigt wird.</p>
+      <div class="space-y-3">
+        {% for name, label, erklaerung in [
+          ('interesse_human_design', 'Human Design', 'Ein System, das deinen Typ, deine Strategie und innere Autorität beschreibt.'),
+          ('interesse_numerologie', 'Numerologie', 'Was dein Geburtsdatum und dein Name über dich verraten könnten.'),
+          ('interesse_astrologie', 'Astrologie', 'Sternzeichen, Planeten und was sie über deine Persönlichkeit sagen.'),
+        ] %}
+        <div class="border border-gray-100 rounded-xl p-3">
+          <p class="font-medium text-navy text-sm mb-0.5">{{ label }}</p>
+          <p class="text-xs text-gray-400 mb-2">{{ erklaerung }}</p>
+          <div class="flex gap-4">
+            {% for val, txt in [('ja','Ja, gerne'), ('vielleicht','Bin neugierig'), ('nein','Eher nicht')] %}
+            <label class="flex items-center gap-1.5 cursor-pointer text-sm">
+              <input type="radio" name="{{ name }}" value="{{ val }}"
+                {% if saved.get(name) == val %}checked{% endif %}>
+              {{ txt }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 11. KI-Einwilligung -->
+    <div class="card mb-8 bg-gold-pale border border-gold/20">
+      <h2 class="font-semibold text-navy mb-2">Einwilligung zur KI Auswertung</h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">
+        Deine Antworten werden am Ende des Prozesses an eine KI (Claude von Anthropic) übergeben,
+        um deinen persönlichen beruflichen Fingerabdruck zu erstellen.
+        Die Daten werden nicht gespeichert oder weitergegeben – sie dienen ausschließlich deiner Auswertung.
+      </p>
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="ki_einwilligung" value="ja"
+          {% if saved.get('ki_einwilligung') == 'ja' %}checked{% endif %}
+          required
+          class="mt-1 w-4 h-4 accent-gold shrink-0">
+        <span class="text-sm text-navy">Ja, ich bin damit einverstanden, dass meine Antworten zur Auswertung an eine KI übergeben werden.</span>
+      </label>
+    </div>
+
+    <div class="text-center">
+      <button type="submit" class="btn-gold px-10 py-4 text-base rounded-xl">
+        Weiter →
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function faktenForm() {
+  return {
+    situation: '{{ saved.get("situation", "") }}',
+    schulform: '{{ saved.get("schulform", "") }}',
+    ausbildungJa: '{{ saved.get("ausbildung_ja", "") }}',
+    studiumJa: '{{ saved.get("studium_ja", "") }}',
+    init() {}
+  }
+}
+</script>
+{% endblock %}

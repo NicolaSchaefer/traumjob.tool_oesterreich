@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Traumjobtool{% endblock %} – mentortain.me</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { DEFAULT: '#2B3B52', dark: '#1A2535', light: '#3D526B' },
+            gold:  { DEFAULT: '#C8A032', light: '#D4B355', pale: '#F6EED0' },
+          },
+          fontFamily: {
+            sans: ['Lato', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    body { font-family: 'Lato', sans-serif; }
+    .btn-primary {
+      background: #2B3B52;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      display: inline-block;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #3D526B; }
+    .btn-gold {
+      background: #C8A032;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      display: inline-block;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-gold:hover { background: #D4B355; }
+    .btn-outline {
+      border: 2px solid #2B3B52;
+      color: #2B3B52;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      display: inline-block;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-outline:hover { background: #2B3B52; color: white; }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 1.5rem;
+    }
+    input[type="text"], input[type="number"], select, textarea {
+      border: 1.5px solid #E5E7EB;
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.9rem;
+      width: 100%;
+      font-size: 0.95rem;
+      transition: border-color 0.15s;
+      background: white;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #C8A032;
+    }
+    .step-dot {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    @media print { .no-print { display: none !important; } }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-navy-dark min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-100 px-4 py-3 no-print">
+    <div class="max-w-3xl mx-auto flex items-center justify-between">
+      <a href="/start">
+        <img src="/static/logo.png" alt="mentortain.me" class="h-9">
+      </a>
+      <div class="flex items-center gap-4">
+        {% if current_step and current_step != 'start' %}
+        <span class="text-xs text-gray-400">Schritt {{ step_number }} von {{ total_steps }}</span>
+        {% endif %}
+        <a href="/logout" class="text-xs text-gray-400 hover:text-gray-600">Beenden</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Fortschrittsbalken -->
+  {% if progress_percent is defined and current_step != 'start' %}
+  <div class="h-1 bg-gray-100 no-print">
+    <div class="h-1 bg-gold transition-all duration-700" style="width: {{ progress_percent }}%"></div>
+  </div>
+  {% endif %}
+
+  <!-- Zurück + Speicherstatus -->
+  {% if prev_url %}
+  <div class="max-w-2xl mx-auto px-4 pt-6 flex items-center justify-between no-print">
+    <a href="{{ prev_url }}" class="text-sm text-gray-500 hover:text-navy flex items-center gap-1">
+      ← Zurück
+    </a>
+    <span id="save-status" class="text-xs text-gray-400" data-status="idle"></span>
+  </div>
+  {% endif %}
+
+  <!-- Inhalt -->
+  <main class="max-w-2xl mx-auto px-4 py-6 pb-12">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Autosave -->
+  {% if current_step in ['fakten','reflexion','charakter','berufsfelder'] %}
+  <script>
+  (function() {
+    const STEP = "{{ current_step }}";
+    const STATUS = document.getElementById('save-status');
+    const STORAGE_KEY = "tj_draft_" + STEP;
+    let dirty = false;
+    let timer = null;
+
+    function setStatus(text, color) {
+      if (!STATUS) return;
+      STATUS.textContent = text;
+      STATUS.style.color = color || '';
+    }
+
+    function gatherForm() {
+      const form = document.querySelector('form');
+      if (!form) return null;
+      const data = {};
+      const inputs = form.querySelectorAll('input[name], textarea[name], select[name]');
+      inputs.forEach(el => {
+        if (el.type === 'radio') {
+          if (el.checked) data[el.name] = el.value;
+        } else if (el.type === 'checkbox') {
+          if (el.checked) {
+            if (data[el.name]) {
+              if (Array.isArray(data[el.name])) data[el.name].push(el.value);
+              else data[el.name] = [data[el.name], el.value];
+            } else data[el.name] = el.value;
+          }
+        } else if (el.type === 'range') {
+          data[el.name] = parseInt(el.value, 10);
+        } else if (el.type !== 'submit' && el.type !== 'button') {
+          data[el.name] = el.value;
+        }
+      });
+      return data;
+    }
+
+    function saveLocal(data) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ts: Date.now(), data: data})); } catch(e) {}
+    }
+
+    async function saveServer() {
+      const data = gatherForm();
+      if (!data) return;
+      saveLocal(data);
+      setStatus('Speichert…', '#9CA3AF');
+      try {
+        const res = await fetch('/api/autosave/' + STEP, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data),
+          credentials: 'same-origin',
+        });
+        if (res.ok) {
+          dirty = false;
+          setStatus('Gespeichert ✓', '#10B981');
+          setTimeout(() => { if (!dirty) setStatus(''); }, 2000);
+        } else {
+          setStatus('Lokal gespeichert (offline)', '#F59E0B');
+        }
+      } catch(e) {
+        setStatus('Lokal gespeichert (offline)', '#F59E0B');
+      }
+    }
+
+    function scheduleSave() {
+      dirty = true;
+      setStatus('Tippst…', '#9CA3AF');
+      clearTimeout(timer);
+      timer = setTimeout(saveServer, 1200);
+    }
+
+    document.addEventListener('input', (e) => {
+      if (e.target.matches('input, textarea, select')) scheduleSave();
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input, textarea, select')) scheduleSave();
+    });
+    document.addEventListener('blur', (e) => {
+      if (e.target.matches('input, textarea, select') && dirty) {
+        clearTimeout(timer);
+        saveServer();
+      }
+    }, true);
+
+    window.addEventListener('beforeunload', (e) => {
+      if (dirty) {
+        const data = gatherForm();
+        if (data) saveLocal(data);
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // Beim Submit nicht warnen
+    document.addEventListener('submit', () => { dirty = false; });
+  })();
+  </script>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

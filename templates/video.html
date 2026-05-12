@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Video{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt 2 von 9</p>
+  <h1 class="text-2xl font-semibold text-navy">Bevor es richtig losgeht</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Dieser Schritt ist wichtig – nimm dir ein paar Minuten dafür.
+  </p>
+</div>
+
+<div class="card mb-6">
+  <h2 class="font-semibold text-navy mb-3">Den Garten vorbereiten</h2>
+  <p class="text-gray-600 text-sm leading-relaxed mb-4">
+    Bevor du tief in die Fragen eintauchst, möchten wir, dass du ein kurzes Video anschaust.
+    Es hilft dir zu verstehen, wie du an diese Reflexion herangehen kannst – und warum die Antworten
+    aus dir kommen müssen, nicht von außen.
+  </p>
+  <p class="text-gray-600 text-sm leading-relaxed">
+    Stell dir vor, du bereitest einen Garten vor: erst der Boden, dann die Saat.
+    Das Video ist der Boden.
+  </p>
+</div>
+
+<div class="card mb-6 bg-navy text-white">
+  <div class="flex items-center gap-4">
+    <div class="text-4xl">▶</div>
+    <div>
+      <p class="font-medium mb-1">Video ansehen</p>
+      <p class="text-white/70 text-sm">Öffnet sich in einem neuen Tab</p>
+    </div>
+  </div>
+  <a
+    href="{{ video_url }}"
+    target="_blank"
+    class="mt-4 block text-center bg-gold text-white py-3 rounded-lg font-medium hover:bg-gold-light transition-colors"
+  >
+    Video öffnen
+  </a>
+</div>
+
+{% if hinweis %}
+<div class="card bg-gold-pale border border-gold/20 mb-6">
+  <p class="text-navy text-sm">{{ hinweis }}</p>
+</div>
+{% endif %}
+
+<div class="card mb-8">
+  <h2 class="font-semibold text-navy mb-4">Hast du dir das Video angesehen?</h2>
+  <form method="post" action="/video" class="flex flex-col gap-3">
+    <button type="submit" name="bestaetigung" value="ja"
+      class="w-full bg-navy text-white py-3 rounded-lg font-medium hover:bg-navy-light transition-colors">
+      Ja, ich habe es geschaut – weiter
+    </button>
+    <button type="submit" name="bestaetigung" value="nein"
+      class="w-full border-2 border-gray-200 text-gray-500 py-3 rounded-lg font-medium hover:border-gray-300 transition-colors">
+      Noch nicht – ich schaue es mir später an
+    </button>
+  </form>
+</div>
+{% endblock %}

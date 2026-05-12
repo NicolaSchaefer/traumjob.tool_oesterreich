@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Deine nächsten Schritte{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Deine nächsten Schritte</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Für jeden deiner 5 Favoriten gibt es hier was zum Schauen, zum Lesen und konkrete Tipps,
+    wie du echte Menschen aus dem Beruf erreichst.
+  </p>
+</div>
+
+<div x-data="linksPage()" x-init="init()">
+
+  <!-- Laden -->
+  <div x-show="laden" class="text-center py-12">
+    <div class="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+    <p class="text-gray-500 text-sm">Infos werden zusammengestellt…</p>
+    <p class="text-gray-400 text-xs mt-2">Das dauert einen kleinen Moment, dafür ist es aber auf dich persönlich zugeschnitten.</p>
+  </div>
+
+  <!-- Fehler -->
+  <div x-show="fehler" class="card bg-red-50 border border-red-100 mb-6">
+    <p class="text-red-700 text-sm" x-text="fehlerText"></p>
+    <button @click="laden=true; fehler=false; loadLinks()" class="mt-3 text-sm text-gold underline">Nochmal versuchen</button>
+  </div>
+
+  <!-- Inhalt -->
+  <div x-show="!laden && !fehler">
+    {% if favoriten %}
+    <div class="space-y-12">
+      {% for beruf in favoriten %}
+      <div>
+        <h2 class="font-semibold text-navy text-xl mb-1 flex items-center gap-2">
+          <span class="text-gold">✦</span> {{ beruf }}
+        </h2>
+
+        <template x-if="linksData && linksData['{{ beruf }}']">
+          <div class="space-y-4 mt-4">
+
+            <!-- Kurzüberblick -->
+            <template x-if="linksData['{{ beruf }}'].kurzueberblick">
+              <div class="bg-navy/5 border border-navy/10 rounded-xl px-4 py-3">
+                <p class="text-xs font-medium text-navy uppercase tracking-wide mb-1">Was du in diesem Beruf machst</p>
+                <p class="text-sm text-navy leading-relaxed" x-text="linksData['{{ beruf }}'].kurzueberblick"></p>
+              </div>
+            </template>
+
+            <!-- Schau dir an: YouTube -->
+            <div>
+              <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Schau dir an</p>
+              <div class="space-y-2">
+                <template x-for="link in linksData['{{ beruf }}'].schau_dir_an">
+                  <a :href="link.url" target="_blank" rel="noopener"
+                    class="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gold/40 hover:bg-gold-pale transition-colors">
+                    <span class="text-red-500 mt-0.5 shrink-0 text-sm">▶</span>
+                    <div>
+                      <span class="text-sm font-medium text-navy" x-text="link.titel"></span>
+                      <p class="text-xs text-gray-500 mt-0.5" x-text="link.beschreibung"></p>
+                    </div>
+                  </a>
+                </template>
+              </div>
+            </div>
+
+            <!-- Lies dich ein: 3 fachspezifische Quellen + BERUFENET-Anker -->
+            <div>
+              <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Lies dich ein</p>
+              <div class="space-y-2">
+                <template x-for="link in linksData['{{ beruf }}'].lies_dich_ein">
+                  <a :href="link.url" target="_blank" rel="noopener"
+                    class="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gold/40 hover:bg-gold-pale transition-colors">
+                    <span class="text-gold mt-0.5 shrink-0 text-sm">→</span>
+                    <div>
+                      <span class="text-sm font-medium text-navy" x-text="link.titel"></span>
+                      <p class="text-xs text-gray-500 mt-0.5" x-text="link.beschreibung"></p>
+                    </div>
+                  </a>
+                </template>
+                <template x-if="linksData['{{ beruf }}'].anker_link">
+                  <a :href="linksData['{{ beruf }}'].anker_link.url" target="_blank" rel="noopener"
+                    class="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gold/40 hover:bg-gold-pale transition-colors">
+                    <span class="text-gold mt-0.5 shrink-0 text-sm">→</span>
+                    <div>
+                      <span class="text-sm font-medium text-navy" x-text="linksData['{{ beruf }}'].anker_link.titel"></span>
+                      <p class="text-xs text-gray-500 mt-0.5" x-text="linksData['{{ beruf }}'].anker_link.beschreibung"></p>
+                    </div>
+                  </a>
+                </template>
+              </div>
+            </div>
+
+
+
+          </div>
+        </template>
+
+        <template x-if="!linksData || !linksData['{{ beruf }}']">
+          <p class="text-gray-400 text-sm mt-3">Infos werden geladen…</p>
+        </template>
+
+        {% if not loop.last %}
+        <hr class="mt-10 border-gray-100">
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- KI-Prompt: einmalig für alle Berufe -->
+    {% set such_prompt_text %}Frage eine KI deiner Wahl:
+
+„Ich interessiere mich für [BERUF] als Beruf in Österreich.
+
+Du bist ein Karriere-Coach mit aktuellem Fachwissen über Lehrberufe, Ausbildungen und Schulen in Österreich (BHS, BMS, Lehre, FH). Du nutzt echte Webrecherche (Browsing/Agentenmodus ist aktiviert), um ausschließlich faktenbasierte und aktuelle Informationen zu liefern. Erfinde nichts dazu!
+
+🔍 Deine Aufgabe:
+Recherchiere den gewünschten Beruf in Echtzeit im Internet. Gliedere die Infos klar und motivierend, für junge Menschen ohne Vorkenntnisse. Achte auf österreichische Besonderheiten (z.B. Lehrlingsentschädigung, WKO, AMS-Angebote). Verwende ausschließlich verlässliche Quellen.
+
+🔒 Quellen:
+Nutze alle Quellen, die du finden und als relevant ansehen kannst. bic.at und wko.at gerne dabei, aber nicht exklusiv, sondern als eine Quelle von mehreren.
+
+📄 Strukturierte Ausgabe (PDF-ready):
+1. 🧾 Berufsbild / Studiengang: Tätigkeiten, Alltag, Einsatzorte, Branchen
+2. 🎓 Zugang & Voraussetzungen: Schulabschluss, persönliche Eigenschaften, formale Anforderungen
+3. 📚 Ablauf & Inhalte: Dauer, Aufbau, Fächer/Module, Praxis vs. Theorie
+4. 💼 Karriere & Gehalt: Aufstieg, Weiterbildung, Gehaltsspannen (regional)
+5. ⚠️ Realitätscheck: Was ist herausfordernd? Was sollte man vorher wissen?
+
+🖨️ Formatierung: Klare Gliederung, Absätze, Icons/Emojis. Freundlich, motivierend, ehrlich."{% endset %}
+    <!-- Sprich mit jemandem: einmalig für alle Berufe -->
+    <div class="mt-12 card">
+      <h2 class="font-semibold text-navy mb-1">Sprich mit jemandem, der das wirklich macht</h2>
+      <p class="text-xs text-gray-400 mb-4">Das gilt für alle deine Favoriten. Nichts ersetzt ein echtes Gespräch mit jemandem, der den Beruf lebt.</p>
+      <ol class="space-y-2 list-decimal list-inside">
+        {% for tipp in [
+          "Frag in deinem Umfeld: Kennt jemand jemanden? Eltern, Verwandte, Nachbarn – die meisten Türen öffnen sich über persönliche Kontakte.",
+          "LinkedIn: Such nach der Berufsbezeichnung + deiner Stadt. Schreib kurz und direkt an – die meisten Menschen helfen gerne.",
+          "Schreib Unternehmen an und frag nach einem Schnuppertag oder einem kurzen Informationsgespräch. Klingt mutig, funktioniert aber öfter als man denkt.",
+          "Berufsverbände, Kammern oder Innungen haben oft Kontaktbörsen oder Ansprechpartner für Interessierte.",
+          "YouTube-Kommentare und Reddit: Viele Berufstätige sind dort aktiv und antworten auf ehrliche Fragen."
+        ] %}
+        <li class="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-navy leading-relaxed marker:text-gold marker:font-semibold">{{ tipp }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <pre id="such-prompt-tpl" class="hidden">{{ such_prompt_text }}</pre>
+    <div class="mt-12 bg-navy/5 border border-navy/10 rounded-xl px-4 py-4" x-data="{ kopiert: false }" >
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <p class="text-xs font-medium text-navy uppercase tracking-wide">KI-Prompt zum Weiterforschen</p>
+        <button @click="navigator.clipboard.writeText(document.getElementById('such-prompt-tpl').textContent); kopiert=true; setTimeout(()=>kopiert=false, 2000)"
+          class="text-xs text-gold hover:underline shrink-0"
+          x-text="kopiert ? '✓ Kopiert' : '📋 Kopieren'"></button>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">Ersetze <strong>[BERUF]</strong> durch den Beruf, über den du mehr erfahren möchtest. Funktioniert mit ChatGPT, Claude oder jeder anderen KI.</p>
+      <pre class="text-xs text-navy leading-relaxed whitespace-pre-wrap font-sans">{{ such_prompt_text }}</pre>
+    </div>
+
+    <div class="mt-8 text-center">
+      <a href="/pdf" class="btn-gold px-10 py-4 text-base rounded-xl inline-block">
+        Deinen beruflichen Fingerabdruck als PDF →
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function linksPage() {
+  return {
+    laden: {{ 'true' if laden else 'false' }},
+    fehler: false,
+    fehlerText: '',
+    linksData: {{ links_data | tojson if links_data else 'null' }},
+    async init() {
+      if (this.linksData) { this.laden = false; return; }
+      await this.loadLinks();
+    },
+    async loadLinks() {
+      try {
+        const res = await fetch('/api/links', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok' || data.status === 'already_done') {
+          window.location.reload();
+        } else {
+          this.fehler = true;
+          this.fehlerText = data.error || 'Beim Laden ist etwas schiefgelaufen.';
+          this.laden = false;
+        }
+      } catch(e) {
+        this.fehler = true;
+        this.fehlerText = 'Verbindungsfehler. Bitte lade die Seite neu.';
+        this.laden = false;
+      }
+    }
+  }
+}
+</script>
+<style>[x-cloak] { display: none !important; }</style>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Deine Energiekurve{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Deine Energiekurve</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Wann bist du am wachsten, am konzentriertesten, am energievollsten? Klicke für jede Stunde,
+    wie viel Energie du da typischerweise hast (0 = platt, 5 = volle Power).
+  </p>
+</div>
+
+<form method="post" action="/energie" x-data="energieForm()">
+  <div class="card mb-6">
+    <div class="grid grid-cols-9 gap-1 text-xs">
+      {% for h in stunden %}
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col-reverse gap-0.5 h-32 w-full mb-1">
+          {% for level in [1,2,3,4,5] %}
+          <button type="button"
+            @click="setze({{ h }}, {{ level }})"
+            class="flex-1 rounded-sm transition-colors"
+            :class="energie[{{ h }}] >= {{ level }} ? 'bg-gold' : 'bg-gray-100 hover:bg-gold-pale'">
+          </button>
+          {% endfor %}
+        </div>
+        <span class="text-gray-400 text-[10px]">{{ h }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-gray-400 text-center mt-3">Tippe auf die Höhe, die deinem Energielevel zur jeweiligen Stunde entspricht.</p>
+  </div>
+
+  {% for h in stunden %}
+  <input type="hidden" name="h_{{ h }}" :value="energie[{{ h }}] || 0">
+  {% endfor %}
+
+  <div class="text-center">
+    <button type="submit" class="btn-gold px-10 py-4 text-base rounded-xl">
+      Weiter →
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function energieForm() {
+  return {
+    energie: {
+      {% for h in stunden %}
+      {{ h }}: {{ saved[h] }},
+      {% endfor %}
+    },
+    setze(stunde, level) {
+      this.energie[stunde] = this.energie[stunde] === level ? 0 : level;
+    },
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dein beruflicher Fingerabdruck – mentortain.me</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        navy: { DEFAULT: '#2B3B52', dark: '#1A2535' },
+        gold:  { DEFAULT: '#C8A032', pale: '#F6EED0' },
+      }}}
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Lato', sans-serif; }
+    @media print {
+      .no-print { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-break { page-break-before: always; }
+    }
+    @page { margin: 1.5cm; }
+  </style>
+</head>
+<body class="bg-white text-navy-dark">
+
+  <!-- Drucken-Button -->
+  <div class="no-print bg-navy text-white px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+    <a href="/links" class="text-white/70 text-sm hover:text-white">← Zurück</a>
+    <span class="text-sm font-medium">Dein beruflicher Fingerabdruck</span>
+    <button onclick="window.print()" class="bg-gold text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-gold/90">
+      Als PDF speichern
+    </button>
+  </div>
+
+  <div class="max-w-2xl mx-auto px-8 py-10">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-10 pb-6 border-b-2 border-gold">
+      <img src="/static/logo.png" alt="mentortain.me" style="height: 2.5rem;">
+      <div class="text-right">
+        <p class="text-xs text-gray-400">Erstellt am {{ datum }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">mentortain.me · Nicola Schaefer</p>
+      </div>
+    </div>
+
+    <h1 class="text-3xl font-bold text-navy mb-2">Dein beruflicher Fingerabdruck</h1>
+    <p class="text-gray-500 text-sm mb-8">Deine persönliche Auswertung, ein Ausgangspunkt – kein Urteil.</p>
+
+    <!-- Goldener Tropfen -->
+    {% if ergebnis.goldener_tropfen %}
+    <div class="bg-navy text-white rounded-2xl p-6 mb-8">
+      <p class="text-xs font-medium text-gold uppercase tracking-wide mb-2">Deine Essenz</p>
+      <p class="leading-relaxed text-white/90">{{ ergebnis.goldener_tropfen }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Fakten -->
+    {% if fakten %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
+        <span class="text-gold">01</span> Deine Ausgangssituation
+      </h2>
+      <div class="bg-gray-50 rounded-xl p-4 grid grid-cols-2 gap-3 text-sm">
+        {% for key, label in [
+          ('vorname', 'Name'), ('alter', 'Alter'), ('bundesland', 'Bundesland'),
+          ('schulform', 'Schulform'), ('abschluss', 'Abschluss'), ('note', 'Note')
+        ] %}
+        {% if fakten.get(key) %}
+        <div>
+          <span class="text-gray-400 text-xs">{{ label }}</span>
+          <p class="font-medium text-navy-dark">{{ fakten[key] }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Reflexion -->
+    {% if reflexion %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
+        <span class="text-gold">02</span> Wie du dich selbst siehst
+      </h2>
+      {% if reflexion.get('selbst_eigene_sicht') %}
+      <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed mb-3">
+        {{ reflexion.selbst_eigene_sicht }}
+      </div>
+      {% endif %}
+
+      {% if reflexion.get('sicht_mutter') or reflexion.get('sicht_vater') or reflexion.get('sicht_freund') %}
+      <h3 class="text-sm font-medium text-gray-500 mb-2">Wie andere dich sehen</h3>
+      <div class="space-y-2">
+        {% for key, label in [('sicht_mutter','Mutter'),('sicht_vater','Vater'),('sicht_freund','Beste/r Freund/in'),('sicht_geschwister','Geschwister')] %}
+        {% if reflexion.get(key) %}
+        <div class="bg-gray-50 rounded-xl p-3 text-sm">
+          <span class="text-xs font-medium text-gold">{{ label }}</span>
+          <p class="text-gray-700 mt-1">{{ reflexion[key] }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% set saetze = [] %}
+      {% for k in ['saetze_schule','saetze_freunde','saetze_familie','saetze_sonstiges'] %}
+        {% if reflexion.get(k) %}{% set _ = saetze.append(reflexion[k]) %}{% endif %}
+      {% endfor %}
+      {% if saetze %}
+      <h3 class="text-sm font-medium text-gray-500 mt-3 mb-2">Prägende Sätze</h3>
+      <div class="space-y-1">
+        {% for s in saetze %}
+        <p class="text-sm text-gray-600 italic bg-gold-pale rounded-lg px-3 py-2">„{{ s }}"</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- Fähigkeiten & Interessen -->
+    {% if reflexion %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
+        <span class="text-gold">03</span> Interessen, Stärken & Freude
+      </h2>
+      <div class="grid grid-cols-1 gap-3 text-sm">
+        {% for key, label in [
+          ('hobbys','Hobbys'),
+          ('kann_gut','Was du gut kannst'),
+          ('moechte_koennen','Was du lernen möchtest'),
+          ('was_macht_gluecklich','Was dich glücklich macht'),
+          ('bewunderung','Was du bei anderen bewunderst'),
+        ] %}
+        {% if reflexion.get(key) %}
+        <div class="bg-gray-50 rounded-xl p-3">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">{{ label }}</span>
+          <p class="text-gray-700 mt-1">{{ reflexion[key] }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Charakterprofil -->
+    {% if charakter_list %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
+        <span class="text-gold">04</span> Dein Charakterprofil
+      </h2>
+      <p class="text-xs text-gray-400 mb-3">Eigenschaften mit Wert 3 oder höher</p>
+      <div class="flex flex-wrap gap-2">
+        {% for e in charakter_list %}
+        <div class="bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+          <span class="text-navy font-medium">{{ e.name }}</span>
+          <span class="text-gold font-bold">{{ e.wert }}/5</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Motivationsmuster -->
+    {% if ergebnis.get('motivationsmuster') %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-3 flex items-center gap-2">
+        <span class="text-gold">05</span> Was dich antreibt
+      </h2>
+      <div class="flex flex-wrap gap-2">
+        {% for m in ergebnis.motivationsmuster %}
+        <span class="bg-gold-pale text-navy text-sm px-3 py-1.5 rounded-full border border-gold/20">{{ m }}</span>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <div class="page-break"></div>
+
+    <!-- Top 5 Favoriten -->
+    {% if favoriten_berufe %}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold text-navy mb-1 flex items-center gap-2">
+        <span class="text-gold">06</span> Deine 5 Favoriten
+      </h2>
+      <p class="text-xs text-gray-400 mb-4">Die Berufe, die dich am meisten ansprechen</p>
+      <div class="space-y-4">
+        {% for beruf in favoriten_berufe %}
+        <div class="border border-gray-100 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-gold font-bold">✦</span>
+            <h3 class="font-semibold text-navy">{{ beruf.name }}</h3>
+            {% if beruf.ausbildungsweg %}
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ beruf.ausbildungsweg }}</span>
+            {% endif %}
+          </div>
+          {% if beruf.bereich %}<p class="text-xs text-gold mb-1">{{ beruf.bereich }}</p>{% endif %}
+          {% if beruf.warum %}<p class="text-sm text-gray-600 leading-relaxed">{{ beruf.warum }}</p>{% endif %}
+          {% if beruf.kreativ_potenzial %}<p class="text-xs text-gray-400 italic mt-2">{{ beruf.kreativ_potenzial }}</p>{% endif %}
+
+          {% if links_data and links_data.get(beruf.name) %}
+          {% set ld = links_data[beruf.name] %}
+          {% if ld.get('lies_dich_ein') %}
+          <div class="mt-3 pt-3 border-t border-gray-50">
+            <p class="text-xs font-medium text-gray-400 mb-1">Lies dich ein</p>
+            {% for link in ld.lies_dich_ein[:3] %}
+            <p class="text-xs text-navy">→ {{ link.titel }}</p>
+            {% endfor %}
+            {% if ld.get('anker_link') %}
+            <p class="text-xs text-navy">→ {{ ld.anker_link.titel }}</p>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if ld.get('schau_dir_an') %}
+          <p class="text-xs text-gray-400 mt-1">▶ YouTube: {% for v in ld.schau_dir_an %}{{ v.titel }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="border-t-2 border-gold pt-6 mt-8 flex items-center justify-between">
+      <img src="/static/logo.png" alt="mentortain.me" style="height: 2rem;">
+      <p class="text-xs text-gray-400 text-right">
+        Dieses Dokument stellt eine aktuelle Momentaufnahme dar und ist als Anregung gedacht.<br>
+        Erstellt mit dem Traumjobtool von mentortain.me.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

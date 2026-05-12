@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Werte-Auktion{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Deine Werte-Auktion</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Du hast 100 Punkte. Verteile sie auf die Werte, die dir in deinem Berufsleben am wichtigsten sind.
+    Höhere Werte = wichtiger. Du musst ehrlich entscheiden, was dir wirklich was bedeutet.
+  </p>
+</div>
+
+{% if fehler %}
+<div class="bg-red-50 border border-red-100 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm">{{ fehler }}</div>
+{% endif %}
+
+<form method="post" action="/werte" x-data="werteForm()">
+  <div class="card mb-6 sticky top-2 z-10 bg-white">
+    <div class="flex items-center justify-between">
+      <span class="text-sm text-gray-500">Verteilt:</span>
+      <div>
+        <span class="text-2xl font-bold" :class="rest === 0 ? 'text-green-600' : (rest < 0 ? 'text-red-600' : 'text-navy')" x-text="verteilt"></span>
+        <span class="text-gray-400"> / 100</span>
+        <span class="ml-2 text-xs" :class="rest < 0 ? 'text-red-600' : 'text-gray-400'" x-text="rest >= 0 ? (rest + ' übrig') : (Math.abs(rest) + ' zu viel')"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-3 mb-8">
+    {% for w in werte %}
+    <div class="card flex items-center gap-4">
+      <div class="flex-1">
+        <p class="text-sm font-medium text-navy">{{ w.name }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" @click="dec('{{ w.id }}')"
+          class="w-8 h-8 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-100">−</button>
+        <input type="number" name="{{ w.id }}" min="0" max="100" step="1"
+          x-model.number="werte['{{ w.id }}']"
+          class="w-16 text-center font-semibold text-navy">
+        <button type="button" @click="inc('{{ w.id }}')"
+          class="w-8 h-8 rounded-full border border-gold/40 text-gold hover:bg-gold-pale">+</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="text-center">
+    <button type="submit"
+      :disabled="rest !== 0"
+      :class="rest !== 0 ? 'opacity-40 cursor-not-allowed' : ''"
+      class="btn-gold px-10 py-4 text-base rounded-xl">
+      Weiter →
+    </button>
+    <p x-show="rest !== 0" class="text-xs text-gray-400 mt-2">
+      Verteile zuerst genau 100 Punkte.
+    </p>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function werteForm() {
+  return {
+    werte: {
+      {% for w in werte %}
+      '{{ w.id }}': {{ saved.get(w.id, 0) }},
+      {% endfor %}
+    },
+    get verteilt() {
+      return Object.values(this.werte).reduce((a,b) => a + (parseInt(b)||0), 0);
+    },
+    get rest() {
+      return 100 - this.verteilt;
+    },
+    inc(id) {
+      if (this.rest > 0) this.werte[id] = (parseInt(this.werte[id])||0) + 5;
+    },
+    dec(id) {
+      const v = parseInt(this.werte[id])||0;
+      if (v > 0) this.werte[id] = Math.max(0, v - 5);
+    },
+  }
+}
+</script>
+{% endblock %}

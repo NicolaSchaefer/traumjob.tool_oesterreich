@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Willkommen{% endblock %}
+
+{% block content %}
+<div class="text-center mb-10">
+  <img src="/static/icon.png" alt="" class="w-16 h-16 mx-auto mb-6">
+  <h1 class="text-3xl font-semibold text-navy leading-tight">
+    Schön, dass du hier bist.
+  </h1>
+  <p class="text-gray-500 mt-3 text-lg leading-relaxed max-w-md mx-auto">
+    Dieses Tool begleitet dich dabei, herauszufinden, was wirklich zu dir passt – nicht, was andere von dir erwarten.
+    Egal ob du vor der ersten Berufswahl stehst oder schon mitten im Berufsleben bist und neu anfangen möchtest.
+  </p>
+</div>
+
+<div class="card mb-6">
+  <h2 class="font-semibold text-navy mb-4 text-lg">Was dich erwartet</h2>
+  <ul class="space-y-3 text-gray-600 text-sm">
+    <li class="flex gap-3">
+      <span class="text-gold font-bold mt-0.5">1</span>
+      <span>Du beantwortest Fragen zu deiner Situation, deinen Interessen und deiner Persönlichkeit.</span>
+    </li>
+    <li class="flex gap-3">
+      <span class="text-gold font-bold mt-0.5">2</span>
+      <span>Du vergleichst Berufsfelder und findest heraus, welche wirklich zu dir passen.</span>
+    </li>
+    <li class="flex gap-3">
+      <span class="text-gold font-bold mt-0.5">3</span>
+      <span>Am Ende bekommst du deinen persönlichen beruflichen Fingerabdruck und einen Vorschlag für konkrete nächste Schritte.</span>
+    </li>
+  </ul>
+</div>
+
+<div class="card bg-gold-pale border border-gold/20 mb-8">
+  <p class="text-navy text-sm leading-relaxed">
+    <strong>Wichtig:</strong> Du kannst jederzeit pausieren und später genau dort weitermachen, wo du aufgehört hast.
+    Nimm dir die Zeit, die du brauchst.
+  </p>
+</div>
+
+<!-- Dokument-Upload (optional) -->
+<div class="card mb-6 border border-gray-100" x-data="{ laden: false, fertig: false, fehler: '' }">
+  <h2 class="font-semibold text-navy mb-1">Hast du schon etwas über dich aufgeschrieben? <span class="text-xs font-normal text-gray-400">(optional)</span></h2>
+  <p class="text-gray-500 text-xs mb-4 leading-relaxed">
+    <strong>Optional</strong>: Du kannst ein Dokument hochladen – z.B. einen Lebenslauf, Notizen über dich, ein Motivationsschreiben oder einfach einen Text, den du über dich geschrieben hast.
+    Das Tool liest es und füllt die Formulare soweit möglich automatisch aus. Du kannst danach alles anpassen. Du kannst diesen Schritt auch einfach überspringen.
+  </p>
+  <label class="block">
+    <input type="file" accept=".pdf,.docx,.txt"
+      class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gold-pale file:text-navy hover:file:bg-gold/20 cursor-pointer"
+      @change="
+        if ($event.target.files[0]) {
+          laden = true; fertig = false; fehler = '';
+          const fd = new FormData();
+          fd.append('datei', $event.target.files[0]);
+          fetch('/api/dokument-upload', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+              laden = false;
+              if (d.error) { fehler = d.error; return; }
+              fertig = true;
+            })
+            .catch(() => { laden = false; fehler = 'Etwas ist schiefgelaufen. Bitte versuche es nochmal.'; });
+        }
+      "
+    >
+  </label>
+  <p x-show="laden" class="text-xs text-gold mt-2 animate-pulse">🔍 Wird gelesen...</p>
+  <p x-show="fertig" class="text-xs text-green-600 mt-2">✓ Dokument erkannt – Formulare werden beim Start vorausgefüllt.</p>
+  <p x-show="fehler" x-text="fehler" class="text-xs text-red-500 mt-2"></p>
+</div>
+
+<div class="text-center">
+  <form method="post" action="/start">
+    <button type="submit" class="btn-gold text-lg px-10 py-4 rounded-xl">
+      Jetzt starten
+    </button>
+  </form>
+  <p class="text-xs text-gray-400 mt-4">Dauert insgesamt ca. 45–90 Minuten – in deinem Tempo.</p>
+</div>
+{% endblock %}

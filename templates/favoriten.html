@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Deine Favoriten{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Welche 5 sprechen dich am meisten an?</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Wähle genau 5 Berufe aus, die du vertiefen möchtest. Du bekommst dann konkrete
+    Infos und Links zu jedem davon.
+  </p>
+</div>
+
+{% if fehler %}
+<div class="bg-red-50 border border-red-100 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm">{{ fehler }}</div>
+{% endif %}
+
+<form method="post" action="/favoriten" x-data="favoritenForm()">
+  <div class="space-y-3 mb-8">
+    {% for beruf in top_berufe %}
+    <div
+      class="card cursor-pointer transition-all duration-150 border-2"
+      :class="ausgewaehlt.includes('{{ beruf.name }}')
+        ? 'border-gold bg-gold-pale'
+        : 'border-transparent hover:border-gray-200'"
+      @click="toggle('{{ beruf.name }}')"
+    >
+      <div class="flex items-start gap-3">
+        <div
+          class="w-6 h-6 rounded border-2 flex items-center justify-center text-xs shrink-0 mt-0.5 transition-all"
+          :class="ausgewaehlt.includes('{{ beruf.name }}')
+            ? 'border-gold bg-gold text-white'
+            : 'border-gray-300'"
+        >
+          <span x-show="ausgewaehlt.includes('{{ beruf.name }}')">✓</span>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-medium text-navy text-sm">{{ beruf.name }}</span>
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ beruf.ausbildungsweg }}</span>
+          </div>
+          <p class="text-xs text-gold mt-0.5">{{ beruf.bereich }}</p>
+        </div>
+        <input type="checkbox" name="favorit" value="{{ beruf.name }}"
+          class="hidden" :checked="ausgewaehlt.includes('{{ beruf.name }}')">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="sticky bottom-4">
+    <div class="bg-white/90 backdrop-blur rounded-2xl border border-gray-100 shadow-lg p-4 flex items-center justify-between">
+      <div>
+        <span class="font-semibold text-navy" x-text="ausgewaehlt.length"></span>
+        <span class="text-sm text-gray-500"> / 5 ausgewählt</span>
+      </div>
+      <button type="submit"
+        :disabled="ausgewaehlt.length !== 5"
+        :class="ausgewaehlt.length !== 5 ? 'opacity-40 cursor-not-allowed' : ''"
+        class="btn-gold px-8 py-3 rounded-xl">
+        Weiter →
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function favoritenForm() {
+  return {
+    ausgewaehlt: {{ saved.ausgewaehlt | tojson }},
+    toggle(name) {
+      const idx = this.ausgewaehlt.indexOf(name);
+      if (idx !== -1) { this.ausgewaehlt.splice(idx, 1); return; }
+      if (this.ausgewaehlt.length < 5) this.ausgewaehlt.push(name);
+    }
+  }
+}
+</script>
+{% endblock %}

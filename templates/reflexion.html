@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Selbstreflexion{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Wer bist du eigentlich?</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Nimm dir Zeit. Diese Fragen haben keine richtigen oder falschen Antworten –
+    es geht darum, was wirklich aus dir kommt.
+  </p>
+  <div class="mt-3 bg-gold-pale border border-gold/20 rounded-xl px-4 py-3 text-sm text-navy">
+    <strong>Je ehrlicher du antwortest, desto besser kann ausgewertet werden.</strong>
+    Niemand außer dir sieht diese Antworten; schreib einfach, was dir in den Sinn kommt. Je ausführlicher desto besser.
+  </div>
+</div>
+
+{% if fehler %}
+<div class="bg-red-50 border border-red-100 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm">{{ fehler }}</div>
+{% endif %}
+
+<form method="post" action="/reflexion" x-data="{ recording: null, activeField: '' }">
+
+  <!-- Erste spontane Fragen (bewusst ganz am Anfang) -->
+  <div class="card mb-5 border border-gold/30 bg-gold-pale">
+    <h2 class="font-semibold text-navy mb-1">Zwei spontane Fragen zum Einstieg</h2>
+    <p class="text-gray-600 text-xs mb-4">Antworte hier ohne Nachdenken. Bauchgefühl, was als erstes kommt.</p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-navy mb-1">Was wolltest du als Kind werden?</label>
+        <p class="text-xs text-gray-500 mb-1">Auch wenn es lustig klingt, es steckt oft mehr drin als man denkt.</p>
+        <textarea name="kindheitstraum" rows="2" placeholder="Schreib einfach drauf los.">{{ saved.get('kindheitstraum', '') }}</textarea>
+        <button type="button" onclick="startAudio('kindheitstraum')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-navy mb-1">Wenn dich jemand zwingen würde, JETZT sofort zu entscheiden, was du beruflich machen willst – was wäre das?</label>
+        <p class="text-xs text-gray-500 mb-1">Bitte ganz spontan antworten.</p>
+        <textarea name="jetzt_entscheidung" rows="2" placeholder="Erster Gedanke. Nicht filtern.">{{ saved.get('jetzt_entscheidung', '') }}</textarea>
+        <button type="button" onclick="startAudio('jetzt_entscheidung')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selbstbeschreibung -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-1">Wie würdest du dich selbst beschreiben?</h2>
+    <p class="text-gray-500 text-xs mb-3">Charakterlich, als Mensch – aus deiner eigenen Sicht.</p>
+    <textarea name="selbst_eigene_sicht" rows="4" placeholder="Schreib einfach drauf los. Kein Druck.">{{ saved.get('selbst_eigene_sicht', '') }}</textarea>
+    <button type="button" onclick="startAudio('selbst_eigene_sicht')"
+      class="mt-2 text-xs text-gold hover:text-gold-light flex items-center gap-1">
+      🎤 Stattdessen sprechen
+    </button>
+  </div>
+
+  <!-- Perspektiven anderer -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-1">Wie sehen dich andere?</h2>
+    <p class="text-gray-500 text-xs mb-4">
+      Versetz dich kurz in die Perspektive der Menschen, die dich gut kennen.
+      Was würden sie über dich sagen?
+    </p>
+    <div class="space-y-4">
+      {% for person, label in [
+        ('mutter', 'Deine Mutter / Mama'),
+        ('vater', 'Dein Vater / Papa'),
+        ('freund', 'Deine beste Freundin / dein bester Freund'),
+        ('geschwister', 'Geschwister oder weitere enge Familie')
+      ] %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+        <textarea name="sicht_{{ person }}" rows="3"
+          placeholder="Was würden {{ label.split('/')[0].strip() }} über dich sagen?">{{ saved.get('sicht_' + person, '') }}</textarea>
+        <button type="button" onclick="startAudio('sicht_{{ person }}')"
+          class="mt-1 text-xs text-gold hover:text-gold-light flex items-center gap-1">
+          🎤 Sprechen
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Prägende Sätze -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-1">Welche (Glaubens)Sätze haben sich eingeprägt?</h2>
+    <p class="text-gray-500 text-xs mb-4">
+      Über dich und über das Leben an sich. Was wurde dir oft gesagt? Was hörst du heute noch
+      im Kopf? Manchmal steckt darin mehr Wahrheit, als man denkt – oder mehr fremde Stimme als eigene.
+    </p>
+    <div class="space-y-4">
+      {% for kontext, label, placeholder in [
+        ('schule', 'In der Schule', 'z.B. "Ohne Studium bringst du es zu nichts" oder "Du musst dich mehr anstrengen"'),
+        ('freunde', 'Bei Freunden', 'z.B. "Du nimmst alles zu ernst" oder "Du hast immer so gute Ideen"'),
+        ('familie', 'In der Familie', 'z.B. "Nach der Schule beginnt der Ernst des Lebens" oder "In unserer Familie wird studiert"'),
+        ('sonstiges', 'Anderswo (Internet, Vorbilder, Gesellschaft)', 'z.B. "Geld macht nicht glücklich" oder "Du bist deines Glückes Schmied"')
+      ] %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+        <textarea name="saetze_{{ kontext }}" rows="2"
+          placeholder='{{ placeholder }}'>{{ saved.get('saetze_' + kontext, '') }}</textarea>
+        <button type="button" onclick="startAudio('saetze_{{ kontext }}')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Hobbies & Interessen -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-4">Hobbies, Interessen & Freude</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Deine Hobbies</label>
+        <textarea name="hobbys" rows="2" placeholder="Was machst du in deiner Freizeit gern?">{{ saved.get('hobbys', '') }}</textarea>
+        <button type="button" onclick="startAudio('hobbys')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was macht dich glücklich oder fröhlich?</label>
+        <textarea name="was_macht_gluecklich" rows="2" placeholder="Momente, Aktivitäten, Menschen, Orte...">{{ saved.get('was_macht_gluecklich', '') }}</textarea>
+        <button type="button" onclick="startAudio('was_macht_gluecklich')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was bewunderst du bei anderen?</label>
+        <textarea name="bewunderung" rows="2" placeholder="Eigenschaften, Fähigkeiten, Leistungen...">{{ saved.get('bewunderung', '') }}</textarea>
+        <button type="button" onclick="startAudio('bewunderung')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fähigkeiten -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-4">Fähigkeiten & Potenzial</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was kannst du gut?</label>
+        <textarea name="kann_gut" rows="2" placeholder="Auch Kleinigkeiten zählen.">{{ saved.get('kann_gut', '') }}</textarea>
+        <button type="button" onclick="startAudio('kann_gut')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was möchtest du gerne gut können?</label>
+        <textarea name="moechte_koennen" rows="2" placeholder="Was reizt dich, zu lernen oder zu meistern?">{{ saved.get('moechte_koennen', '') }}</textarea>
+        <button type="button" onclick="startAudio('moechte_koennen')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was glaubst du, ist für dich möglich? (finanziell, beruflich, im Leben)</label>
+        <textarea name="was_ist_moeglich" rows="2" placeholder="Was traust du dir zu? Was liegt drin?">{{ saved.get('was_ist_moeglich', '') }}</textarea>
+        <button type="button" onclick="startAudio('was_ist_moeglich')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persönlichkeits-Schnellfragen -->
+  <div class="card mb-8">
+    <h2 class="font-semibold text-navy mb-4">Ein paar schnelle Fragen</h2>
+    <div class="space-y-4 text-sm">
+
+      {% for name, label, placeholder in [
+        ('sprachen', 'Welche Sprachen sprichst du?', 'z.B. Deutsch, Englisch, Türkisch'),
+        ('instrumente', 'Spielst du Instrumente?', 'z.B. Gitarre, Klavier – oder nein'),
+        ('handwerk_bereich', 'Bist du handwerklich begabt? Falls ja, in welchem Bereich?', 'z.B. Holz, Elektronik, Nähen – oder nein'),
+      ] %}
+      <div>
+        <label class="block font-medium text-gray-700 mb-1">{{ label }}</label>
+        <input type="text" name="{{ name }}" value="{{ saved.get(name, '') }}" placeholder="{{ placeholder }}">
+        <button type="button" onclick="startAudioInput('{{ name }}')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      {% endfor %}
+
+      <div>
+        <label class="block font-medium text-gray-700 mb-2">Wie offen gehst du auf andere Menschen zu?</label>
+        <div class="flex gap-4 flex-wrap">
+          {% for val, label in [('sehr', 'Sehr offen'), ('mittel', 'Mittel'), ('eher_nicht', 'Eher nicht')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="offenheit" value="{{ val }}"
+              {% if saved.get('offenheit') == val %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-medium text-gray-700 mb-2">Würdest du dich selbst als lustig bezeichnen?</label>
+        <div class="flex gap-6">
+          {% for val, label in [('ja', 'Ja, auf jeden Fall'), ('manchmal', 'Manchmal'), ('eher_nicht', 'Eher nicht')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="lustig" value="{{ val }}"
+              {% if saved.get('lustig') == val %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Werte & Sinn -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-4">Was dir wirklich wichtig ist</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was sind deine wichtigsten Werte im Leben?</label>
+        <p class="text-xs text-gray-400 mb-1">z.B. Familie, Freiheit, Gerechtigkeit, Kreativität, Sicherheit, Abenteuer...</p>
+        <textarea name="werte" rows="2" placeholder="Schreib einfach drauf los.">{{ saved.get('werte', '') }}</textarea>
+        <button type="button" onclick="startAudio('werte')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Worin siehst du Sinn? Was fühlt sich bedeutsam an?</label>
+        <textarea name="sinn" rows="2" placeholder="Wann hast du das Gefühl, dass etwas wirklich wichtig ist?">{{ saved.get('sinn', '') }}</textarea>
+        <button type="button" onclick="startAudio('sinn')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Antreiber -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-4">Dein innerer Antreiber</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was motiviert dich? Was treibt dich an?</label>
+        <textarea name="antreiber" rows="2" placeholder="Was bringt dich morgens zum Aufstehen – außer dem Wecker?">{{ saved.get('antreiber', '') }}</textarea>
+        <button type="button" onclick="startAudio('antreiber')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was könntest du stundenlang machen, ohne auf die Uhr zu schauen?</label>
+        <textarea name="stundenlang" rows="2" placeholder="Egal ob Hobby, Arbeit oder einfach so.">{{ saved.get('stundenlang', '') }}</textarea>
+        <button type="button" onclick="startAudio('stundenlang')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Geld & Träume -->
+  <div class="card mb-5">
+    <h2 class="font-semibold text-navy mb-4">Geld, Träume & Kindheitswünsche</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Wie wichtig ist dir Geld im Beruf?</label>
+        <div class="flex gap-4 flex-wrap text-sm">
+          {% for val, label in [('sehr','Sehr wichtig – ich will gut verdienen'),('mittel','Wichtig, aber nicht das Einzige'),('wenig','Weniger wichtig – Sinn geht vor')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="geld_wichtigkeit" value="{{ val }}" {% if saved.get('geld_wichtigkeit') == val %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was würdest du machen, wenn du morgen 120 Millionen Euro auf dem Konto hättest?</label>
+        <p class="text-xs text-gray-400 mb-1">Ehrlich – nicht was du "solltest", sondern was du wirklich tun würdest.</p>
+        <textarea name="millionen_frage" rows="3" placeholder="Reisen? Unternehmen gründen? Weiter arbeiten? Familie unterstützen?">{{ saved.get('millionen_frage', '') }}</textarea>
+        <button type="button" onclick="startAudio('millionen_frage')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gedanken & Gefühle -->
+  <div class="card mb-8 border border-gold/20 bg-gold-pale">
+    <h2 class="font-semibold text-navy mb-1">Was geht dir wirklich durch den Kopf?</h2>
+    <p class="text-gray-500 text-xs mb-4 leading-relaxed">
+      Nicht was du nach außen zeigst – sondern was sich innen dreht.
+      Gibt es Druck? Angst, die falsche Wahl zu treffen? Druck von zu Hause, von Gleichaltrigen, von dir selbst?
+      Kannst du dich zwischen zwei Sachen nicht entscheiden? Zu viele Optionen? Schreib einfach drauf los.
+    </p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Was dreht sich bei dir im Kopf? Was macht dir Sorgen?</label>
+        <textarea name="gedanken_im_kopf" rows="4"
+          placeholder="z.B. Ich weiß nicht, was ich will. Alle anderen scheinen es zu wissen. Meine Eltern erwarten, dass ich studiere. Ich habe Angst, einen Fehler zu machen...">{{ saved.get('gedanken_im_kopf', '') }}</textarea>
+        <button type="button" onclick="startAudio('gedanken_im_kopf')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Woher kommt der Druck, und was genau macht dir Angst?</label>
+        <p class="text-xs text-gray-400 mb-1">Druck von zu Hause? Von anderen im gleichen Alter? Zu viele Optionen? Angst, dich zu entscheiden? Angst, einen Fehler zu machen?</p>
+        <textarea name="angst_druck" rows="3"
+          placeholder="Schreib einfach, was wirklich da ist.">{{ saved.get('angst_druck', '') }}</textarea>
+        <button type="button" onclick="startAudio('angst_druck')" class="mt-1 text-xs text-gold flex items-center gap-1">🎤 Sprechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center">
+    <button type="submit" class="btn-gold px-10 py-4 text-base rounded-xl">
+      Weiter →
+    </button>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startAudio(fieldId) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Spracherkennung ist in deinem Browser nicht verfügbar. Bitte tippe deine Antwort.');
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'de-DE';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  const field = document.querySelector(`[name="${fieldId}"]`);
+  const btn = event.target;
+  btn.textContent = '⏹ Aufnahme stoppen';
+  btn.onclick = () => { recognition.stop(); btn.textContent = '🎤 Sprechen'; btn.onclick = () => startAudio(fieldId); };
+  recognition.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) field.value += e.results[i][0].transcript + ' ';
+    }
+  };
+  recognition.onerror = () => { btn.textContent = '🎤 Sprechen'; };
+  recognition.onend = () => { btn.textContent = '🎤 Sprechen'; };
+  recognition.start();
+}
+
+// Für <input type="text"> Felder
+function startAudioInput(fieldId) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Spracherkennung ist in deinem Browser nicht verfügbar.');
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'de-DE';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  const field = document.querySelector(`[name="${fieldId}"]`);
+  const btn = event.target;
+  btn.textContent = '⏹ Stoppen';
+  btn.onclick = () => { recognition.stop(); };
+  recognition.onresult = (e) => { field.value = e.results[0][0].transcript; };
+  recognition.onerror = () => { btn.textContent = '🎤 Sprechen'; btn.onclick = () => startAudioInput(fieldId); };
+  recognition.onend = () => { btn.textContent = '🎤 Sprechen'; btn.onclick = () => startAudioInput(fieldId); };
+  recognition.start();
+}
+</script>
+{% endblock %}

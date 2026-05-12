@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Dein Ergebnis{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Dein beruflicher Fingerabdruck</h1>
+</div>
+
+<!-- Beruflicher Fingerabdruck -->
+<div class="card bg-navy text-white mb-6 relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-32 h-32 opacity-10">
+    <img src="/static/icon.png" alt="" class="w-full h-full object-contain">
+  </div>
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-3">Dein beruflicher Fingerabdruck</p>
+  <p class="leading-relaxed text-white/90">{{ ergebnis.goldener_tropfen }}</p>
+</div>
+
+<!-- Motivationsmuster -->
+{% if ergebnis.motivationsmuster %}
+<div class="card mb-6">
+  <h2 class="font-semibold text-navy mb-3">Was dich antreibt</h2>
+  <div class="flex flex-wrap gap-2">
+    {% for m in ergebnis.motivationsmuster %}
+    <span class="bg-gold-pale text-navy text-sm px-3 py-1.5 rounded-full border border-gold/20">{{ m }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Stärken -->
+{% if ergebnis.staerken %}
+<div class="card mb-8">
+  <h2 class="font-semibold text-navy mb-3">Deine Stärken</h2>
+  <ul class="space-y-1">
+    {% for s in ergebnis.staerken %}
+    <li class="flex items-start gap-2 text-sm text-gray-600">
+      <span class="text-gold mt-0.5">✦</span> {{ s }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Top 15 Berufe -->
+<h2 class="font-semibold text-navy text-xl mb-4">Deine Top 15 Berufsideen</h2>
+<p class="text-gray-500 text-sm mb-6 leading-relaxed">
+  Diese Vorschläge entstehen aus dem, was du erzählt hast. Schau, was bei dir was auslöst.
+  Du musst dich für nichts entscheiden, nur ehrlich hinspüren.
+</p>
+
+<div class="space-y-4 mb-8" x-data="{ kreativOffen: {} }">
+  {% for beruf in ergebnis.top_berufe %}
+  <div class="card">
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <div>
+        <span class="text-xs text-gray-400 font-medium">{{ loop.index }}.</span>
+        <h3 class="font-semibold text-navy inline ml-1">{{ beruf.name }}</h3>
+        <span class="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ beruf.ausbildungsweg }}</span>
+      </div>
+    </div>
+    <p class="text-xs text-gold mb-1">{{ beruf.bereich }}</p>
+    <p class="text-xs font-medium text-gold uppercase tracking-wide mt-2 mb-1">Warum das passen könnte</p>
+    <p class="text-sm text-gray-700 leading-relaxed mb-3">{{ beruf.warum }}</p>
+    {% if beruf.bedenke_dabei %}
+    <p class="text-xs font-medium text-navy uppercase tracking-wide mt-3 mb-1">Bedenke dabei</p>
+    <p class="text-sm text-gray-600 leading-relaxed mb-3">{{ beruf.bedenke_dabei }}</p>
+    {% endif %}
+    {% if beruf.woran_du_testen_kannst %}
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mt-3 mb-1">Woran du testen kannst, ob es passt</p>
+    <p class="text-sm text-gray-600 leading-relaxed mb-3">{{ beruf.woran_du_testen_kannst }}</p>
+    {% endif %}
+
+    <!-- Kreative Ideen -->
+    <div x-data="kreativ('{{ beruf.name | urlencode }}')">
+      <button @click="toggle()" class="text-xs text-gold hover:text-gold-light flex items-center gap-1 font-medium">
+        <span x-text="offen ? '▲ Kreative Wege ausblenden' : '✨ Kreative Wege in diesem Beruf'"></span>
+        <span x-show="laden" class="ml-2 inline-block w-3 h-3 border-2 border-gold border-t-transparent rounded-full animate-spin"></span>
+      </button>
+      <div x-show="offen" x-cloak class="mt-3 space-y-2">
+        <template x-if="fehler">
+          <div class="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-700 leading-relaxed">
+            <p x-text="fehler"></p>
+            <button @click="laden=true; fehler=''; load()"
+              class="mt-2 text-xs text-red-700 underline hover:no-underline">Nochmal versuchen</button>
+          </div>
+        </template>
+        <template x-for="idee in ideen">
+          <div class="bg-gold-pale border border-gold/20 rounded-lg p-3 text-xs text-navy leading-relaxed" x-text="idee"></div>
+        </template>
+      </div>
+    </div>
+
+    {% if beruf.kreativ_potenzial %}
+    <p class="text-xs text-gray-400 italic mt-2 border-t border-gray-50 pt-2">{{ beruf.kreativ_potenzial }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Extra Perspektiven (Astrologie, Numerologie, Human Design) -->
+{% if ergebnis.extra_perspektiven %}
+<div class="card mb-6 border border-gold/20 bg-gold-pale">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-3">Weitere Perspektiven</p>
+  <ul class="space-y-2">
+    {% for hinweis in ergebnis.extra_perspektiven %}
+    <li class="text-sm text-navy leading-relaxed flex gap-2">
+      <span class="text-gold shrink-0">✦</span> {{ hinweis }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Außergewöhnliche Berufe -->
+{% if aussergewoehnliche %}
+<div class="mb-8" x-data="{ offen: false }">
+  <button @click="offen = !offen"
+    class="w-full flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:border-gold/30 transition-colors">
+    <div class="text-left">
+      <p class="font-semibold text-navy text-sm">Hast du diese Berufe auf dem Schirm?</p>
+      <p class="text-xs text-gray-400 mt-0.5">Außergewöhnliche Wege, die oft übersehen werden</p>
+    </div>
+    <span class="text-gold text-lg" x-text="offen ? '▲' : '▼'"></span>
+  </button>
+  <div x-show="offen" x-cloak class="mt-3 space-y-2">
+    {% for b in aussergewoehnliche %}
+    <div class="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-start gap-3">
+      <span class="text-xl shrink-0">{{ b.icon }}</span>
+      <div>
+        <p class="font-medium text-navy text-sm">{{ b.name }}</p>
+        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ b.beschreibung }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card bg-gold-pale border border-gold/20 mb-8">
+  <p class="text-sm text-navy leading-relaxed">
+    <strong>Wichtig:</strong> Du musst dich nicht sofort entscheiden. Schau, was sich
+    bei dir gut anfühlt, was dich neugierig macht. Frag deine Eltern, sprich mit Bekannten,
+    geh zu einem Schnuppertag. Du darfst dir Zeit nehmen.
+  </p>
+</div>
+
+<div class="text-center space-y-3">
+  <a href="/favoriten" class="btn-gold px-10 py-4 text-base rounded-xl inline-block">
+    5 Favoriten auswählen →
+  </a>
+  <div>
+    <a href="/vergleich" class="text-sm text-gray-400 hover:text-navy underline">← Zurück zu den Berufsfeldern</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>[x-cloak] { display: none !important; }</style>
+<script>
+function kreativ(berufEnc) {
+  return {
+    offen: false,
+    laden: false,
+    ideen: [],
+    fehler: '',
+    toggle() {
+      if (!this.offen && this.ideen.length === 0 && !this.fehler) { this.load(); return; }
+      this.offen = !this.offen;
+    },
+    async load() {
+      this.laden = true;
+      this.offen = true;
+      this.fehler = '';
+      try {
+        const res = await fetch('/api/kreativ/' + berufEnc);
+        const d = await res.json();
+        if (res.ok && d.ideen && d.ideen.length) {
+          this.ideen = d.ideen;
+        } else {
+          this.fehler = d.error || 'Die KI hat gerade keine Antwort geliefert.';
+        }
+      } catch(e) {
+        this.fehler = 'Verbindung zur KI fehlgeschlagen.';
+      }
+      this.laden = false;
+    },
+  }
+}
+</script>
+{% endblock %}

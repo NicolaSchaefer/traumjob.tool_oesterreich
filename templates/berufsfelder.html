@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Berufsfelder{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Welche Welten reizen dich?</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Wähle alle Berufsfelder, bei denen du ein Kribbeln spürst – auch wenn du noch nicht weißt warum.
+    Mindestens 2, gerne mehr. Du kannst auf eine Karte klicken, um mehr zu erfahren.
+  </p>
+</div>
+
+{% if fehler %}
+<div class="bg-red-50 border border-red-100 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm">{{ fehler }}</div>
+{% endif %}
+
+<form method="post" action="/berufsfelder" x-data="berufsfelderForm()">
+
+  <div class="grid grid-cols-1 gap-3 mb-8">
+    {% for b in berufsfelder %}
+    <div
+      class="relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-150"
+      :class="ausgewaehlt.includes('{{ b.id }}')
+        ? 'border-gold bg-gold-pale'
+        : 'border-gray-100 bg-white hover:border-gray-300'"
+      @click="toggle('{{ b.id }}')"
+    >
+      <div class="flex items-start gap-3">
+        <span class="text-2xl mt-0.5">{{ b.icon }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-navy text-sm">{{ b.name }}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span
+                class="text-xs text-gold hover:underline"
+                @click.stop="zeigeInfo('{{ b.id }}')"
+              >Info</span>
+              <div
+                class="w-5 h-5 rounded border-2 flex items-center justify-center text-xs transition-all"
+                :class="ausgewaehlt.includes('{{ b.id }}')
+                  ? 'border-gold bg-gold text-white'
+                  : 'border-gray-300'"
+              >
+                <span x-show="ausgewaehlt.includes('{{ b.id }}')">✓</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5">{{ b.kurz }}</p>
+        </div>
+      </div>
+      <input type="checkbox" name="berufsfeld" value="{{ b.id }}"
+        class="hidden"
+        :checked="ausgewaehlt.includes('{{ b.id }}')">
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Eigene Interessen ergänzen -->
+  <div class="card mb-6">
+    <label class="block text-sm font-medium text-navy mb-1">
+      Fehlt dir noch etwas?
+    </label>
+    <p class="text-xs text-gray-400 mb-3">Parfümeur/in, Astronaut, Nautologie – einfach reinschreiben, wenn dich etwas interessiert, das oben nicht steht.</p>
+    <input
+      type="text"
+      name="custom_eingabe"
+      placeholder="z.B. Parfümeur/in, Modedesign, Astronautik"
+      x-model="customEingabe"
+      class="w-full border border-gray-200 rounded-lg px-4 py-3 text-navy-dark focus:outline-none focus:border-gold transition-colors text-sm"
+    >
+  </div>
+
+  <!-- Info-Modal -->
+  <div x-show="modalOffen" x-cloak
+    class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4"
+    @click.self="modalOffen = false">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl" x-text="modalIcon"></span>
+        <h3 class="font-semibold text-navy text-lg" x-text="modalTitel"></h3>
+      </div>
+      <p class="text-gray-600 text-sm leading-relaxed mb-4" x-text="modalText"></p>
+      <div x-show="modalBeispiele.length">
+        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Beispiele</p>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="b in modalBeispiele">
+            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full" x-text="b"></span>
+          </template>
+        </div>
+      </div>
+      <button @click="modalOffen = false"
+        class="mt-6 w-full border-2 border-gray-200 text-gray-500 py-2.5 rounded-lg text-sm hover:border-gray-300">
+        Schließen
+      </button>
+    </div>
+  </div>
+
+  <div class="sticky bottom-4">
+    <div class="bg-white/90 backdrop-blur rounded-2xl border border-gray-100 shadow-lg p-4 flex items-center justify-between">
+      <span class="text-sm text-gray-500">
+        <span class="font-semibold text-navy" x-text="ausgewaehlt.length"></span> ausgewählt
+      </span>
+      <button type="submit" class="btn-gold px-8 py-3 rounded-xl"
+        :disabled="ausgewaehlt.length < 2"
+        :class="ausgewaehlt.length < 2 ? 'opacity-40 cursor-not-allowed' : ''">
+        Weiter →
+      </button>
+    </div>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const BERUFSFELDER_DATA = {
+  {% for b in berufsfelder %}
+  '{{ b.id }}': {
+    name: {{ b.name | tojson }},
+    icon: {{ b.icon | tojson }},
+    beschreibung: {{ b.beschreibung | tojson }},
+    beispiele: {{ b.beispiele | tojson }},
+  },
+  {% endfor %}
+};
+
+function berufsfelderForm() {
+  return {
+    ausgewaehlt: {{ saved.ausgewaehlt | tojson }},
+    customEingabe: {{ saved.custom_eingabe | default('') | tojson }},
+    modalOffen: false,
+    modalTitel: '',
+    modalIcon: '',
+    modalText: '',
+    modalBeispiele: [],
+    toggle(id) {
+      const idx = this.ausgewaehlt.indexOf(id);
+      if (idx === -1) this.ausgewaehlt.push(id);
+      else this.ausgewaehlt.splice(idx, 1);
+    },
+    zeigeInfo(id) {
+      const d = BERUFSFELDER_DATA[id];
+      this.modalTitel = d.name;
+      this.modalIcon = d.icon;
+      this.modalText = d.beschreibung;
+      this.modalBeispiele = d.beispiele;
+      this.modalOffen = true;
+    },
+  }
+}
+</script>
+<style>[x-cloak] { display: none !important; }</style>
+{% endblock %}

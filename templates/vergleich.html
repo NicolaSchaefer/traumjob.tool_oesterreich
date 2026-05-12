@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Was macht dir Bock?{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="text-xs font-medium text-gold uppercase tracking-wide mb-1">Schritt {{ step_number }} von {{ total_steps }}</p>
+  <h1 class="text-2xl font-semibold text-navy">Bock oder kein Bock?</h1>
+  <p class="text-gray-500 mt-2 text-sm leading-relaxed">
+    Hör auf dein Bauchgefühl. Keine Erklärung nötig – einfach ehrlich reagieren.
+  </p>
+</div>
+
+<!-- Fortschritt -->
+<div class="flex items-center gap-3 mb-8">
+  <div class="flex-1 bg-gray-100 rounded-full h-2">
+    <div class="bg-gold h-2 rounded-full transition-all duration-300"
+      style="width: {{ ((fortschritt / gesamt) * 100) | int if gesamt > 0 else 0 }}%"></div>
+  </div>
+  <span class="text-xs text-gray-400 shrink-0">{{ fortschritt }} / {{ gesamt }}</span>
+</div>
+
+{% if aktuelle %}
+<!-- Aktuelle Karte -->
+<div class="flex flex-col items-center mb-8" x-data="{ animating: false, richtung: '' }"
+  @keydown.left.window="absenden('kein_bock')"
+  @keydown.right.window="absenden('bock')"
+  @keydown.up.window="absenden('vielleicht')">
+
+  <div
+    class="w-full max-w-sm bg-white rounded-3xl shadow-md border border-gray-100 p-10 text-center transition-all duration-200"
+    :class="{
+      'translate-x-16 opacity-0 rotate-6': animating && richtung === 'bock',
+      '-translate-x-16 opacity-0 -rotate-6': animating && richtung === 'kein_bock',
+      '-translate-y-10 opacity-0': animating && richtung === 'vielleicht'
+    }"
+  >
+    <p class="text-navy font-semibold text-lg leading-snug">{{ aktuelle }}</p>
+  </div>
+
+  <!-- Buttons -->
+  <div class="flex items-center gap-4 mt-8 w-full max-w-sm">
+
+    <form method="post" action="/vergleich" class="flex-1">
+      <input type="hidden" name="antwort" value="kein_bock">
+      <button type="submit"
+        @click="animating=true; richtung='kein_bock'"
+        class="w-full bg-gray-100 hover:bg-red-50 hover:border-red-200 border-2 border-transparent text-gray-500 hover:text-red-500 py-4 rounded-2xl font-medium transition-all duration-150 text-sm">
+        😬 Kein Bock
+      </button>
+    </form>
+
+    <form method="post" action="/vergleich">
+      <input type="hidden" name="antwort" value="vielleicht">
+      <button type="submit"
+        @click="animating=true; richtung='vielleicht'"
+        class="bg-gray-100 hover:bg-gold-pale hover:border-gold/30 border-2 border-transparent text-gray-400 hover:text-gold py-4 px-4 rounded-2xl transition-all duration-150 text-sm"
+        title="Vielleicht">
+        🤔
+      </button>
+    </form>
+
+    <form method="post" action="/vergleich" class="flex-1">
+      <input type="hidden" name="antwort" value="bock">
+      <button type="submit"
+        @click="animating=true; richtung='bock'"
+        class="w-full bg-navy hover:bg-navy-light text-white py-4 rounded-2xl font-medium transition-all duration-150 text-sm">
+        🙌 Bock!
+      </button>
+    </form>
+
+  </div>
+
+  <p class="text-xs text-gray-300 mt-4">← Kein Bock &nbsp;|&nbsp; Bock! →</p>
+
+  <div class="mt-6 text-center">
+    <a href="/vergleich/skip" class="text-xs text-gray-400 underline hover:text-gray-500">
+      Schritt überspringen →
+    </a>
+  </div>
+</div>
+
+<!-- Bisherige "Bock"-Liste -->
+{% if bock %}
+<div class="mt-2">
+  <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Deine Bockliste bisher</p>
+  <div class="flex flex-wrap gap-2">
+    {% for a in bock %}
+    <span class="bg-navy/5 text-navy text-xs px-3 py-1.5 rounded-full">{{ a }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- Fertig -->
+<div class="card text-center py-10">
+  <div class="text-5xl mb-4">🎯</div>
+  <h2 class="font-semibold text-navy text-xl mb-2">Geschafft!</h2>
+  <p class="text-gray-500 text-sm mb-6">Deine Antworten werden jetzt ausgewertet.</p>
+  <a href="/laden" class="btn-gold inline-block px-8 py-3 rounded-xl">Zur Auswertung →</a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function absenden(antwort) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/vergleich';
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'antwort';
+  input.value = antwort;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}
